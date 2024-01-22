@@ -1112,7 +1112,7 @@ if __name__ == "__main__":
 
                     os.makedirs(f"outputs/{expdir}", exist_ok=True)
                     with open(f"outputs/{expdir}/time.txt", "a+") as f:
-                        f.write(f"{dataset}\t{seed}\t{neighbor_mode}\t{alg_end-alg_st}\n")
+                        f.write(f"{dataset}\t{seed}\t{neighbor_mode}\t{alg_end-alg_st}\t{time_now}\n")
                     np.savez("outputs/{}/Louvain_{}_{}_{}.npz".format(expdir, dataset, seed, neighbor_mode), preds=preds, labels=labels)
                 except Exception as e:
                     logger.error(f"Error: full_adj_{dataset}_{seed}_{neighbor_mode}.npz\n{traceback.format_exc()}")
