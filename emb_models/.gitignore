@@ -6,3 +6,5 @@ data
 dataset
 GGD/**/outputs
 GGD/**/*.log
+GGD/**/pkl
+GAE/models
