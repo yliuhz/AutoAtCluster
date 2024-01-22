@@ -1,0 +1,7 @@
+**/outputs
+
+**/dataset
+**/syndata
+
+**/*.log
+**/*.txt
