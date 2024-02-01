@@ -302,11 +302,12 @@ def load_emb_best_model(dataset, seed):
         "cora": "/home/yliumh/github/AutoAtCluster/emb_models/GGD/manual_version/outputs/GGD_{}_emb_{}.npz",
         "citeseer": "/home/yliumh/github/AutoAtCluster/emb_models/GGD/manual_version/outputs/GGD_{}_emb_{}.npz",
         "wiki": "/home/yliumh/github/AutoAtCluster/emb_models/AGE/outputs/AGE_{}_emb_{}.npz",
-        "pubmed": "/home/yliumh/github/AutoAtCluster/emb_models/GGD/manual_version/outputs/GGD_{}_emb_{}.npz",
+        "pubmed": "/home/yliumh/github/AutoAtCluster/emb_models/AGE/outputs/AGE_{}_emb_{}.npz",
         "amazon-photo": "/home/yliumh/github/AutoAtCluster/emb_models/GGD/manual_version/outputs/GGD_{}_emb_{}.npz",
         "amazon-computers": "/home/yliumh/github/AutoAtCluster/emb_models/GGD/manual_version/outputs/GGD_{}_emb_{}.npz",
         "cora-full": "/home/yliumh/github/graph2gauss/outputs/G2G_{}_emb_{}.npz",
-        "ogbn-arxiv": "/home/yliumh/github/AutoAtCluster/emb_models/GGD/manual_version/outputs/GGD_{}_emb1_{}.npz"
+        "ogbn-arxiv": "/home/yliumh/github/AutoAtCluster/emb_models/GGD/manual_version/outputs/GGD_{}_emb1_{}.npz",
+        "ogbn-products": "/home/yliumh/github/AutoAtCluster/emb_models/GGD/manual_version/outputs/GGD_{}_emb1_{}.npz"
     }
 
     emb_path = emb_paths[dataset].format(dataset, seed)
@@ -362,13 +363,14 @@ if __name__ == "__main__":
         "amazon-photo",
         "amazon-computers",
         "cora-full",
-        "ogbn-arxiv"
+        "ogbn-arxiv",
+        "ogbn-products",
     ]
 
     seeds = np.arange(3, dtype=int)
     for dataset in datasets:
         for seed in seeds:
-            logger.info(f"{dataset}, {seed}")
+            # logger.info(f"{dataset}, {seed}")
 
             np.random.seed(seed)
             random.seed(seed)
@@ -385,8 +387,10 @@ if __name__ == "__main__":
 
             for m2 in edges:
                 if os.path.exists("outputs/knn_adj_{}_{}_{:.0f}.npz".format(dataset, seed, m2/m)):
-                    logger.info("Skip")
+                    logger.info(f"Skip: knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
                     continue
+                else:
+                    logger.info(f"knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
 
                 k = np.ceil(m2 / n)
                 non_linear = "relu"

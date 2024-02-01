@@ -34,18 +34,71 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')  # - %(name)s
 logger = logging.getLogger(__name__)
 
-def louvain_cluster(adj, labels, random_state=None):
+def louvain_cluster(adj, neighbor_mode):
     from community import community_louvain
     import networkx as nx
     from sklearn.metrics import normalized_mutual_info_score as NMI, adjusted_mutual_info_score as AMI
 
     graph = nx.from_scipy_sparse_array(adj)
     graph_nk = nk.nxadapter.nx2nk(graph, weightAttr="weight")
-    algo = nk.community.PLM(graph_nk, True)
+
+    alg_st = time.time()
+    if neighbor_mode in ["all", "queue"]: #turbo=True
+        algo = nk.community.PLM(graph_nk, refine=True, turbo=True, nm=neighbor_mode, par="balanced", maxIter=32)
+    else: #turbo=False
+        algo = nk.community.PLM(graph_nk, refine=True, turbo=False, nm=neighbor_mode, par="balanced", maxIter=32)
     plmCommunities = nk.community.detectCommunities(graph_nk, algo=algo)
+    alg_ed = time.time()
+
     preds = plmCommunities.getVector()
 
-    return preds
+    timing = algo.getTiming()
+    visitCountSum = algo.getCount()
+    iters = algo.getIter()
+
+    return preds, alg_ed-alg_st, timing, visitCountSum, iters
+
+"""
+Cluster unattributed graphs
+    datapath: str
+    graphFormat: choose from 
+        networkit.graphio.Format.DOT
+        networkit.graphio.Format.EdgeList
+        networkit.graphio.Format.EdgeListCommaOne
+        networkit.graphio.Format.EdgeListSpaceZero
+        networkit.graphio.Format.EdgeListSpaceOne
+        networkit.graphio.Format.EdgeListTabZero
+        networkit.graphio.Format.EdgeListTabOne
+        networkit.graphio.Format.GraphML
+        networkit.graphio.Format.GraphToolBinary
+        networkit.graphio.Format.GraphViz
+        networkit.graphio.Format.GEXF
+        networkit.graphio.Format.GML
+        networkit.graphio.Format.KONECT
+        networkit.graphio.Format.LFR
+        networkit.graphio.Format.METIS
+        networkit.graphio.Format.NetworkitBinary
+        networkit.graphio.Format.SNAP
+        networkit.graphio.Format.MatrixMarket
+"""
+def louvain_cluster_unattributed(datapath, graphFormat, neighbor_mode):
+    graph_nk = nk.readGraph(datapath, graphFormat)
+
+    alg_st = time.time()
+    if neighbor_mode in ["all", "queue"]: #turbo=True
+        algo = nk.community.PLM(graph_nk, refine=True, turbo=True, nm=neighbor_mode, par="balanced", maxIter=32)
+    else: #turbo=False
+        algo = nk.community.PLM(graph_nk, refine=True, turbo=False, nm=neighbor_mode, par="balanced", maxIter=32)
+    plmCommunities = nk.community.detectCommunities(graph_nk, algo=algo)
+    alg_ed = time.time()
+
+    preds = plmCommunities.getVector()
+    
+    timing = algo.getTiming()
+    visitCountSum = algo.getCount()
+    iters = algo.getIter()
+
+    return preds, alg_ed-alg_st, timing, visitCountSum, iters
 
 def make_parser():
     parser = argparse.ArgumentParser()
@@ -231,7 +284,7 @@ def load_data(dataset): # {'pubmed', 'citeseer', 'cora'}
         raise NotImplementedError()
 
 def load_wiki():
-    f = open('/data/liuyue/New/AGE/data/graph.txt', 'r')
+    f = open('/data/yliumh/AutoAtClusterDatasets/AGE/data/graph.txt', 'r')
     adj, xind, yind = [], [], []
     for line in f.readlines():
         line = line.split()
@@ -242,14 +295,14 @@ def load_wiki():
     f.close()
     ##logger.info(len(adj))
 
-    f = open('/data/liuyue/New/AGE/data/group.txt', 'r')
+    f = open('/data/yliumh/AutoAtClusterDatasets/AGE/data/group.txt', 'r')
     label = []
     for line in f.readlines():
         line = line.split()
         label.append(int(line[1]))
     f.close()
 
-    f = open('/data/liuyue/New/AGE/data/tfidf.txt', 'r')
+    f = open('/data/yliumh/AutoAtClusterDatasets/AGE/data/tfidf.txt', 'r')
     fea_idx = []
     fea = []
     adj = np.array(adj)
@@ -285,6 +338,27 @@ def load_wiki():
     return adj, features, label
 
 if __name__ == "__main__":
+
+    data2format = { # for unattr graphs
+        "uk-2007-05@100000-edgelist.txt": nk.Format.EdgeListTabZero,
+        "uk-2007-05-edgelist.txt": nk.Format.EdgeListTabZero,
+        "com-orkut.ungraph.txt": nk.Format.SNAP,
+    } 
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", type=str, required=True, choices=["all", "unweighted", "weighted", "queue"])
+    parser.add_argument("--unattr", action="store_true")
+    parser.add_argument("--datapath", type=str, default="")
+    parser.add_argument("--nthreads", type=int, choices=[1,2,4,8,16,32,64], default=96)
+    parser.add_argument("--nseeds", type=int, default=3)
+    parser.add_argument("--bootstrap", action="store_true")
+    args = parser.parse_args()
+    logger.info(f"{args}")
+
+    nk.engineering.setNumberOfThreads(args.nthreads)
+    logger.info(f"#CurThreads= {nk.engineering.getCurrentNumberOfThreads()}")
+    logger.info(f"#MaxThreads= {nk.engineering.getMaxNumberOfThreads()}")
+
     datasets = [
         "cora",
         "citeseer",
@@ -293,53 +367,161 @@ if __name__ == "__main__":
         "amazon-photo",
         "amazon-computers",
         "cora-full",
-        "ogbn-arxiv"
+        "ogbn-arxiv",
+        # "ogbn-products",
+    ]
+
+    # neighbor_modes = [
+    #     "unweighted",
+    #     "queue",
+    #     "all",
+    #     "weighted"
+    # ]
+    neighbor_modes = [
+        f"{args.mode}"
     ]
     
-    seeds = np.arange(1, dtype=int)
+    seeds = np.arange(args.nseeds, dtype=int)
 
     os.makedirs("outputs", exist_ok=True)
+    expdir = f"LouvainNK-formal"
+    if args.unattr:
+        expdir = expdir + "-unattr"
+    if args.bootstrap:
+        expdir = expdir + "-bootstrap"
+    expdir = f"{expdir}/{args.nthreads}x"
+    logger.info(f"Results stored in ./outputs/{expdir}")
 
-    for dataset in datasets:
-        for seed in seeds:
-            logger.info(f"{dataset}, {seed}")
+    for neighbor_mode in neighbor_modes:
 
-            np.random.seed(seed)
-            random.seed(seed)
+        if args.unattr:
+            for seed in seeds:
+                np.random.seed(seed)
+                random.seed(seed)
+                nk.engineering.setSeed(seed, False)
+                
+                dataset = args.datapath.split("/")[-1].split(".")[0]
+                logger.info(f"{neighbor_mode}, {dataset}, {seed}")
+                setproctitle.setproctitle("LouvainNK-{}-{}-{}".format(neighbor_mode, dataset, seed))
 
-            setproctitle.setproctitle("LouvainNK-{}-{}".format(dataset, seed))
-
-            adj, features, labels = load_data(dataset)
-
-            n = adj.shape[0]
-            m = adj.sum()
-            # edges = np.arange(m, 11*m, m, dtype=int)
-            edges = np.arange(10*m, 101*m, 10*m, dtype=int)
-
-            for m2 in edges:
-                if os.path.exists("outputs/networkit/Louvain_{}_{}_{:.0f}.npz".format(dataset, seed, m2/m)):
-                    logger.info(f"Skip: knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
+                if os.path.exists("outputs/{}/Louvain_{}_{}_{}.npz".format(expdir, dataset, seed, neighbor_mode)):
+                    logger.info(f"Skip: unattr_adj_{dataset}_{seed}_{neighbor_mode}.npz")
                     continue
 
-                knn_graph_path = f"/home/yliumh/github/AutoAtCluster/baselines/KNN/outputs/knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz"
-
                 try:
-                    data = np.load(knn_graph_path)
-                    adj_data, adj_row, adj_col = data["data"], data["row"], data["col"]
-                    knn_adj = sp.coo_matrix((adj_data, (adj_row, adj_col)), shape=(n,n))
-
-                    # knn_adj = knn_graph(emb, k, non_linear, i=6)
-                    alg_st = time.time()
-                    preds = louvain_cluster(knn_adj, labels, random_state=seed)
-                    alg_end = time.time()
+                    dataname = args.datapath.split("/")[-1]
+                    dataformat = data2format[dataname]
+                    func_st = time.time()
+                    preds, alg_time, timing, visitCountSum, iters = louvain_cluster_unattributed(args.datapath, dataformat, neighbor_mode)
+                    func_end = time.time()
 
                     time_now = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
-                    with open("timeNK.txt", "a+") as f:
-                        f.write(f"{dataset}\t{seed}\t{m2/m:.0f}\t{alg_end-alg_st}\t{time_now}\n")
 
-                    os.makedirs("outputs/networkit", exist_ok=True)
-                    np.savez("outputs/networkit/Louvain_{}_{}_{:.0f}.npz".format(dataset, seed, m2/m), preds=preds, labels=labels)
+                    os.makedirs(f"outputs/{expdir}", exist_ok=True)
+                    with open(f"outputs/{expdir}/time.txt", "a+") as f:
+                        f.write(f"{dataset}\t{seed}\t{neighbor_mode}\t{alg_time}\t{func_end-func_st}\t{time_now}\n")
+                    np.savez("outputs/{}/Louvain_{}_{}_{}.npz".format(expdir, dataset, seed, neighbor_mode), preds=preds)
+
+                    logger.info(f"{visitCountSum} {sum(visitCountSum)}")
+                    logger.info(f"{timing}")
+
+                    with open(f"outputs/{expdir}/count.txt", "a+") as f:
+                        f.write(f"{dataset}\t{seed}\t{neighbor_mode}\t{time_now}\t{sum(visitCountSum)}\t")
+                        for vc in visitCountSum: # [1,2,3,4]
+                            f.write(f"{vc}\t")
+                        f.write(f"\n")
+
+                    with open(f"outputs/{expdir}/timing.txt", "a+") as f:
+                        f.write(f"{dataset}\t{seed}\t{neighbor_mode}\t{time_now}\n")
+                        for key, values in timing.items(): # "move": [1,2,3,4]
+                            f.write(f"{key}\t{sum(values)}\t")
+                            for value in values:
+                                f.write(f"{value}\t")
+                            f.write("\n")
+                        f.write(f"\n")
+
+                    with open(f"outputs/{expdir}/iters.txt", "a+") as f:
+                        f.write(f"{dataset}\t{seed}\t{neighbor_mode}\t{time_now}\t{sum(iters)}\t")
+                        for it in iters: # [1,2,3,4]
+                            f.write(f"{it}\t")
+                        f.write(f"\n")
                 except Exception as e:
-                    logger.error(f"Error: knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz {e}")
+                    logger.error(f"Error: unattr_adj_{dataset}_{seed}_{neighbor_mode}.npz {e}")
+                else:
+                    logger.info(f"Success: unattr_adj_{dataset}_{seed}_{neighbor_mode}.npz")
 
-            
+        else:
+            for dataset in datasets:
+                
+                adj, features, labels = load_data(dataset)
+
+                n = adj.shape[0]
+                m = adj.sum()
+                edges = np.arange(m, 10*m, m, dtype=int)
+                edges = np.concatenate([edges, np.arange(10*m, 101*m, 10*m, dtype=int)])
+
+                for m2 in edges:
+                    for seed in seeds:
+                        logger.info(f"{neighbor_mode}, {dataset}, {m2/m:.0f}, {seed}")
+
+                        np.random.seed(seed)
+                        random.seed(seed)
+                        nk.engineering.setSeed(seed, False)
+
+                        setproctitle.setproctitle("LouvainNK-{}-{}-{:.0f}-{}".format(neighbor_mode, dataset, m2/m, seed))
+
+                        if os.path.exists("outputs/{}/Louvain_{}_{}_{:.0f}_{}.npz".format(expdir, dataset, seed, m2/m, neighbor_mode)):
+                            logger.info(f"Skip: knn_adj_{dataset}_{seed}_{m2/m:.0f}_{neighbor_mode}.npz")
+                            continue
+
+                        knn_graph_path = f"/home/yliumh/github/AutoAtCluster/baselines/KNN/outputs/knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz"
+
+                        try:
+                            data = np.load(knn_graph_path)
+                            adj_data, adj_row, adj_col = data["data"], data["row"], data["col"]
+                            knn_adj = sp.coo_matrix((adj_data, (adj_row, adj_col)), shape=(n,n))
+
+                            if args.bootstrap:
+                                knn_adj = ( knn_adj + adj ) / 2
+
+                            # knn_adj = knn_graph(emb, k, non_linear, i=6)
+                            func_st = time.time()
+                            preds, alg_time, timing, visitCountSum, iters = louvain_cluster(knn_adj, neighbor_mode)
+                            func_end = time.time()
+
+                            time_now = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+
+                            os.makedirs(f"outputs/{expdir}", exist_ok=True)
+                            with open(f"outputs/{expdir}/time.txt", "a+") as f:
+                                f.write(f"{dataset}\t{seed}\t{m2/m:.0f}\t{neighbor_mode}\t{alg_time}\t{func_end-func_st-alg_time}\t{time_now}\n")
+                            np.savez("outputs/{}/Louvain_{}_{}_{:.0f}_{}.npz".format(expdir, dataset, seed, m2/m, neighbor_mode), preds=preds, labels=labels)
+
+                            logger.info(f"{visitCountSum} {sum(visitCountSum)}")
+                            logger.info(f"{timing}")
+
+                            with open(f"outputs/{expdir}/count.txt", "a+") as f:
+                                f.write(f"{dataset}\t{seed}\t{m2/m:.0f}\t{neighbor_mode}\t{time_now}\t{sum(visitCountSum)}\t")
+                                for vc in visitCountSum: # [1,2,3,4]
+                                    f.write(f"{vc}\t")
+                                f.write(f"\n")
+
+                            with open(f"outputs/{expdir}/timing.txt", "a+") as f:
+                                f.write(f"{dataset}\t{seed}\t{m2/m:.0f}\t{neighbor_mode}\t{time_now}\n")
+                                for key, values in timing.items(): # "move": [1,2,3,4]
+                                    f.write(f"{key}\t{sum(values)}\t")
+                                    for value in values:
+                                        f.write(f"{value}\t")
+                                f.write(f"\n")
+
+                            with open(f"outputs/{expdir}/iters.txt", "a+") as f:
+                                f.write(f"{dataset}\t{seed}\t{m2/m:.0f}\t{neighbor_mode}\t{time_now}\t{sum(iters)}\t")
+                                for it in iters: # [1,2,3,4]
+                                    f.write(f"{it}\t")
+                                f.write(f"\n")
+
+                        except Exception as e:
+                            logger.error(f"Error: knn_adj_{dataset}_{seed}_{m2/m:.0f}_{neighbor_mode}.npz {e}")
+                        else:
+                            logger.info(f"Success: knn_adj_{dataset}_{seed}_{m2/m:.0f}_{neighbor_mode}.npz")
+
+                

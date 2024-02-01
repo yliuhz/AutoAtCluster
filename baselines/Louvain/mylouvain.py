@@ -629,28 +629,30 @@ def __one_level(graph, status, weight_key, resolution, random_state, neighbor_mo
                 __remove(node, com_node,
                         neigh_communities.get(com_node, 0.), status)
                 
-                neighbors = list(graph[node].keys())
-                deg_of_node = len(neighbors) # unweighted degree
-                r = random_state.randint(deg_of_node) # Sample a neighbor id
-                r_neighbor = neighbors[r]
-                best_com = status.node2com.get(r_neighbor)
-                if best_com == -1: # r_neighbor == node
-                    __insert(node, com_node,
-                            neigh_communities.get(best_com, 0.), status) # change back
-                    continue
+                neighbor_dict_copy = graph[node].copy()
+                if node in neighbor_dict_copy.keys():
+                    neighbor_dict_copy.pop(node) # Only choose other nodes
+                neighbors = list(neighbor_dict_copy.keys())
 
-                dnc = neigh_communities[best_com]
-                incr = remove_cost + dnc - \
-                            resolution * status.degrees.get(best_com, 0.) * degc_totw
-                if incr > __MIN:
-                    __insert(node, best_com,
-                            neigh_communities.get(best_com, 0.), status) # strict increase
-                    # print(f"{node}: {com_node}->{best_com} {incr}") 
-                    if best_com != com_node:
-                        modified = True
+                if len(neighbors) > 0:
+                    r_neighbor = random_state.choice(neighbors, size=1)[0]
+                    best_com = status.node2com.get(r_neighbor)
+
+                    dnc = neigh_communities[best_com]
+                    incr = remove_cost + dnc - \
+                                resolution * status.degrees.get(best_com, 0.) * degc_totw
+                    if incr > __MIN:
+                        __insert(node, best_com,
+                                neigh_communities.get(best_com, 0.), status) # strict increase
+                        # print(f"{node}: {com_node}->{best_com} {incr}") 
+                        if best_com != com_node:
+                            modified = True
+                    else:
+                        __insert(node, com_node,
+                                neigh_communities.get(com_node, 0.), status) # change back
                 else:
                     __insert(node, com_node,
-                            neigh_communities.get(best_com, 0.), status) # change back
+                                neigh_communities.get(com_node, 0.), status) # change back
                 
                 
         elif neighbor_mode == "weighted":
@@ -663,23 +665,36 @@ def __one_level(graph, status, weight_key, resolution, random_state, neighbor_mo
                 __remove(node, com_node,
                         neigh_communities.get(com_node, 0.), status)
                 
-                ps = np.array([x.get(weight_key, 0) for x in graph[node].values()])
-                # ps = np.exp(ps) / sum(np.exp(ps)) # Transform neighbor weights into distribution
-                ps = softmax(ps)
-                # ps = ps/sum(ps)
+                # Old implementation
+                # ps = np.array([x.get(weight_key, 0) for x in graph[node].values()])
+                # # ps = np.exp(ps) / sum(np.exp(ps)) # Transform neighbor weights into distribution
+                # ps = softmax(ps)
+                # # ps = ps/sum(ps)
 
-                deg_of_node = len(graph[node]) # unweighted degree
-                r = random_state.choice(deg_of_node, size=1, p=ps)[0] # Sample a neighbor id
-                r_neighbor = list(graph[node].keys())[r] # TODO: 确保keys的顺序和ps的顺序一致
-                best_com = status.node2com[r_neighbor]
+                # deg_of_node = len(graph[node]) # unweighted degree
+                # r = random_state.choice(deg_of_node, size=1, p=ps)[0] # Sample a neighbor id
+                # r_neighbor = list(graph[node].keys())[r] # TODO: 确保keys的顺序和ps的顺序一致
+                # best_com = status.node2com[r_neighbor]
+                ##### End of old implementation
+                # New implementation
+                neigh_communities_copy = neigh_communities.copy()
+                if com_node in neigh_communities_copy.keys():
+                    neigh_communities_copy.pop(com_node) # Only try moving to other communities
+                neigh_comms = list(neigh_communities_copy.keys())
+                neigh_comms_weights = list(neigh_communities_copy.values())
+                
+                if len(neigh_comms_weights) > 0:
+                    ps = softmax(neigh_comms_weights)
+                    r = random_state.choice(len(neigh_comms_weights), size=1, p=ps)[0]
+                    best_com = neigh_comms[r]
+                    ##### End of new implementation
 
-                if best_com != -1:
                     dnc = neigh_communities[best_com]
                     incr = remove_cost + dnc - \
                                 resolution * status.degrees.get(best_com, 0.) * degc_totw
                     if incr > __MIN:
                         __insert(node, best_com,
-                            neigh_communities.get(best_com, 0.), status) # strict increase 
+                                neigh_communities.get(best_com, 0.), status) # strict increase 
                         if best_com != com_node:
                             modified = True
                     else:
@@ -688,6 +703,7 @@ def __one_level(graph, status, weight_key, resolution, random_state, neighbor_mo
                 else:
                     __insert(node, com_node,
                             neigh_communities.get(com_node, 0.), status) # change back
+                    
         elif neighbor_mode == "queue":
             q = list(__randomize(graph.nodes(), random_state)) # Initialize a queue
             q_mask = np.ones_like(q, dtype=int)
@@ -841,9 +857,13 @@ def simple_test():
 
 def louvain_cluster(adj, labels, random_state=None, neighbor_mode="all"):
     graph = nx.from_scipy_sparse_array(adj)
+
+    alg_st = time.time()
     partition = best_partition(graph, random_state=random_state, neighbor_mode=neighbor_mode) # Use louvain defined in this file
+    alg_ed = time.time()
+
     preds = list(partition.values())
-    return preds
+    return preds, alg_ed-alg_st
 
 """
 Faster unfolding of communities: speeding up the Louvain algorithm
@@ -949,15 +969,15 @@ if __name__ == "__main__":
                         knn_adj = sp.coo_matrix((adj_data, (adj_row, adj_col)), shape=(n,n))
                         
                         # knn_adj = knn_graph(emb, k, non_linear, i=6)
-                        alg_st = time.time()
-                        preds = louvain_cluster(knn_adj, labels, random_state=seed, neighbor_mode=neighbor_mode)
-                        alg_end = time.time()
+                        func_st = time.time()
+                        preds, alg_time = louvain_cluster(knn_adj, labels, random_state=seed, neighbor_mode=neighbor_mode)
+                        func_ed = time.time()
                     
                         time_now = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
                         os.makedirs(f"outputs/{expdir}", exist_ok=True)
                         with open(f"outputs/{expdir}/time.txt", "a+") as f:
-                            f.write(f"{dataset}\t{seed}\t{m2/m:.0f}\t{neighbor_mode}\t{alg_end-alg_st}\t{time_now}\n")
+                            f.write(f"{dataset}\t{seed}\t{m2/m:.0f}\t{neighbor_mode}\t{alg_time}\t{func_ed-func_st-alg_time}\t{time_now}\n")
                         np.savez("outputs/{}/Louvain_{}_{}_{:.0f}_{}.npz".format(expdir, dataset, seed, m2/m, neighbor_mode), preds=preds, labels=labels)
                     except Exception as e:
                         logger.error(f"Error: knn_adj_{dataset}_{seed}_{m2/m:.0f}_{neighbor_mode}.npz\n{traceback.format_exc()}")

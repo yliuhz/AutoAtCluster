@@ -11,7 +11,7 @@ from dgl import DGLGraph
 import dgl.function as fn
 from dgl.data import register_data_args, load_data
 from dgl.dataloading import MultiLayerFullNeighborSampler, MultiLayerNeighborSampler
-from dgl.dataloading.pytorch import NodeDataLoader
+# from dgl.dataloading import NodeDataLoader
 from torch.utils.data.dataloader import DataLoader
 from dgl.nn import EdgeWeightNorm
 from tqdm import tqdm
@@ -45,7 +45,7 @@ class NbrSampleCollater(object):
         batch = torch.tensor(batch)
         nodes = batch[:, 0]
         labels = batch[:, 1]
-        blocks = self.block_sampler.sample_blocks(self.graph, nodes)
+        _, _, blocks = self.block_sampler.sample_blocks(self.graph, nodes)
         return blocks, labels
 
 def aug_feature_dropout(input_feat, drop_percent=0.2):
@@ -109,7 +109,8 @@ def preprocess(graph):
 
 def main(args, seed=None):
     cuda = True
-    free_gpu_id = int(get_free_gpu())
+    # free_gpu_id = int(get_free_gpu())
+    free_gpu_id = int(args.gpu)
     torch.cuda.set_device(free_gpu_id)
     # load and preprocess dataset
     if 'ogbn' not in args.dataset_name:
@@ -196,7 +197,13 @@ def main(args, seed=None):
 
         loss = 0
         for n_iter, (blocks, labels) in enumerate(tqdm(train_node_loader, desc=f'train epoch {epoch}')):
-            blocks = [block.to(free_gpu_id) for block in blocks]
+            try:
+                blocks = [block.to(free_gpu_id) for block in blocks]
+            except:
+                print(f"blocks: {blocks}")
+                print(f"block0: {blocks[0]}")
+                print(f"block-1: {blocks[-1]}")
+                exit(0)
             labels = labels.to(free_gpu_id)
             loss = ggd(blocks, labels, b_xent)
 
@@ -267,7 +274,10 @@ def main(args, seed=None):
     # Output embeddings
     with torch.no_grad():
         os.makedirs("outputs", exist_ok=True)
-        np.savez("outputs/GGD_{}_emb_{}.npz".format(args.dataset, seed), emb=embeds.cpu().numpy())
+
+        print(f"{embeds.shape} {all_labels.shape}") # torch.Size([2449029, 1024]) torch.Size([2449029])
+
+        np.savez("outputs/GGD_{}_emb{}_{}_{}.npz".format(args.dataset_name, args.n_ggd_epochs, seed, args.n_hidden), emb=embeds.cpu().numpy(), labels=all_labels.cpu().numpy())
 
         return 0.0
 
@@ -370,7 +380,7 @@ if __name__ == '__main__':
                         help="early stop patience condition")
     parser.add_argument("--self-loop", action='store_true',
                         help="graph self-loop (default=False)")
-    parser.add_argument("--n_trails", type=int, default=1,
+    parser.add_argument("--n_trails", type=int, default=10,
                         help="number of trails")
     parser.add_argument("--gnn_encoder", type=str, default='gcn',
                         help="choice of gnn encoder")
