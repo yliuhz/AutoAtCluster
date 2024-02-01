@@ -2,6 +2,7 @@
 **/outputs
 **/*.log
 Cluster/**/*.npz
+TSNE/**/*.npz
 data
 dataset
 GGD/**/outputs
