@@ -1,6 +1,1 @@
-[submodule "baselines/networkit"]
-	path = baselines/networkit
-	url = https://github.com/yliuhz/networkit.git
-[submodule "networkit"]
-	path = networkit
-	url = https://github.com/yliuhz/networkit.git
+
