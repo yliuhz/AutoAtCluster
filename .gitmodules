@@ -1,1 +1,4 @@
 
+[submodule "networkit"]
+	path = networkit
+	url = https://github.com/yliuhz/networkit.git
