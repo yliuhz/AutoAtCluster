@@ -1,5 +1,0 @@
-neighbor_modes,rates,cora,citeseer,wiki,pubmed,amazon-photo,amazon-computers,cora-full,ogbn-arxiv
-unweighted,full,,,,0.2891782696861704,,,,
-,full,,,,,,,,
-,full,,,,,,,,
-all,full,,,,0.2891782696861704,,,,
