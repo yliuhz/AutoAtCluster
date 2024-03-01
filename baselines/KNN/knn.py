@@ -19,6 +19,7 @@ from vis import plot_superadj
 from ogb.nodeproppred import DglNodePropPredDataset
 import time
 from datetime import datetime
+import gc
 
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')  # - %(name)s
@@ -353,6 +354,41 @@ def batch_knn_graph(embeddings, k, non_linearity, i, batch_size=1024):
     # logger.info(col[:5])
     return sp.coo_matrix((data, (row, col)), shape=(n,n))
 
+
+def batch_knn_graph_gpu(embeddings, k, batch_size=1024, device="cuda:5"):
+    embeddings = torch.FloatTensor(embeddings).to(device)
+    embeddings = F.normalize(embeddings, dim=1, p=2)
+    n, d = embeddings.shape
+    data, row, col = [], [], []
+    st = 0
+    k = int(k)
+    for st in range(0, n, batch_size):
+        ed = min(n, st+batch_size)
+        sub_emb = embeddings[st:ed].to(device)
+        with torch.no_grad():
+            sub_sim = torch.mm(sub_emb, embeddings.T)
+            values, indices = sub_sim.topk(k, dim=-1, sorted=False)
+            values = F.relu(values)
+            values = values.to("cpu")
+            indices = indices.to("cpu")
+
+        sub_row = np.repeat(np.arange(st,ed), k).tolist()
+        sub_col = indices.flatten().tolist()
+        sub_data = values.flatten().tolist()
+
+        row += sub_row
+        col += sub_col
+        data += sub_data
+
+        logger.info(f"{st:d}/{n:d}")
+
+        # del sub_emb, sub_sim, values, indices, sub_row, sub_col, sub_data
+
+    # del embeddings
+    # gc.collect()
+    return sp.coo_matrix((data, (row, col)), shape=(n,n))
+
+
 if __name__ == "__main__":
 
     datasets = [
@@ -364,8 +400,11 @@ if __name__ == "__main__":
         "amazon-computers",
         "cora-full",
         "ogbn-arxiv",
-        "ogbn-products",
+        # "ogbn-products",
     ]
+    # datasets = [
+    #     "ogbn-arxiv"
+    # ]
 
     seeds = np.arange(3, dtype=int)
     for dataset in datasets:
@@ -382,22 +421,27 @@ if __name__ == "__main__":
 
             n = adj.shape[0]
             m = adj.sum()
-            edges = np.arange(m, 10*m, m, dtype=int)
-            edges = np.concatenate([edges, np.arange(10*m, 101*m, 10*m, dtype=int)])
+            # edges = np.arange(m, 10*m, m, dtype=int)
+            # edges = np.concatenate([edges, np.arange(10*m, 101*m, 10*m, dtype=int)])
+            # edges = [500*m, 1000*m, 2000*m, 4000*m]
+            edges = np.arange(10*m, 101*m, 10*m, dtype=int)
 
             for m2 in edges:
-                if os.path.exists("outputs/knn_adj_{}_{}_{:.0f}.npz".format(dataset, seed, m2/m)):
-                    logger.info(f"Skip: knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
-                    continue
-                else:
-                    logger.info(f"knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
+                # if os.path.exists("outputs/knn_adj_{}_{}_{:.0f}.npz".format(dataset, seed, m2/m)):
+                #     logger.info(f"Skip: knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
+                #     continue
+                # else:
+                #     logger.info(f"knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
+
+                logger.info(f"knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
 
                 k = np.ceil(m2 / n)
                 non_linear = "relu"
 
                 # knn_adj = knn_graph(emb, k, non_linear, i=6)
                 alg_st = time.time()
-                knn_adj = batch_knn_graph(emb, k, non_linear, i=6, batch_size=1024)
+                # knn_adj = batch_knn_graph(emb, k, non_linear, i=6, batch_size=1024)
+                knn_adj = batch_knn_graph_gpu(emb, k, batch_size=1024, device="cuda:0")
                 knn_adj = sp.coo_matrix(knn_adj)
                 knn_adj.eliminate_zeros()
                 alg_end = time.time()
@@ -408,6 +452,6 @@ if __name__ == "__main__":
 
                 # plot_superadj(knn_adj, K=100, sparse=True, labels=labels, dataset="knn", vline=True)
 
-                os.makedirs("outputs", exist_ok=True)
-                np.savez("outputs/knn_adj_{}_{}_{:.0f}.npz".format(dataset, seed, m2/m), data=knn_adj.data, row=knn_adj.row, col=knn_adj.col)
+                # os.makedirs("outputs", exist_ok=True)
+                # np.savez("outputs/knn_adj_{}_{}_{:.0f}.npz".format(dataset, seed, m2/m), data=knn_adj.data, row=knn_adj.row, col=knn_adj.col)
 

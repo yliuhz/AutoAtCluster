@@ -329,6 +329,15 @@ if __name__ == "__main__":
         "uk-2007-05@100000-edgelist.txt": nk.Format.EdgeListTabZero,
         "uk-2007-05-edgelist.txt": nk.Format.EdgeListTabZero,
         "com-orkut.ungraph.txt": nk.Format.SNAP,
+        "cora.edgelist": nk.Format.EdgeListTabZero,
+        "citeseer.edgelist": nk.Format.EdgeListTabZero,
+        "wiki.edgelist": nk.Format.EdgeListTabZero,
+        "pubmed.edgelist": nk.Format.EdgeListTabZero,
+        "amazon-photo.edgelist": nk.Format.EdgeListTabZero,
+        "amazon-computers.edgelist": nk.Format.EdgeListTabZero,
+        "cora-full.edgelist": nk.Format.EdgeListTabZero,
+        "ogbn-arxiv.edgelist": nk.Format.EdgeListTabZero,
+        "ogbn-products.edgelist": nk.Format.EdgeListTabZero,
     } 
 
     parser = argparse.ArgumentParser()

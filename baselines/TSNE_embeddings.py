@@ -10,15 +10,16 @@ import time
 
 def load_emb(model, dataset, seed):
     emb_paths = {
-        "GAE": "/data/liuyue/New/SBM/mySBM/emb_models/GAE/outputs", 
-        "VGAE": "/data/liuyue/New/SBM/mySBM/emb_models/GAE/outputs",
-        "ARGA": "/data/liuyue/New/SBM/mySBM/emb_models/ARGA/ARGA/arga/outputs",
-        "ARVGA": "/data/liuyue/New/SBM/mySBM/emb_models/ARGA/ARGA/arga/outputs",
-        "AGE": "/data/liuyue/New/SBM/mySBM/emb_models/AGE/outputs",
-        "DGI": "/data/liuyue/New/SBM/mySBM/emb_models/DGI/outputs",
-        "MVGRL": "/data/liuyue/New/SBM/mySBM/emb_models/MVGRL/outputs",
-        "GRACE": "/data/liuyue/New/SBM/mySBM/emb_models/GRACE/outputs",
-        "GGD": "/data/liuyue/New/SBM/mySBM/emb_models/GGD/manual_version/outputs"
+        "GAE": "/home/yliumh/github/AutoAtCluster/emb_models/GAE/outputs", 
+        "VGAE": "/home/yliumh/github/AutoAtCluster/emb_models/GAE/outputs",
+        "ARGA": "/home/yliumh/github/AutoAtCluster/emb_models/ARGA/ARGA/arga/outputs",
+        "ARVGA": "/home/yliumh/github/AutoAtCluster/emb_models/ARGA/ARGA/arga/outputs",
+        "AGE": "/home/yliumh/github/AutoAtCluster/emb_models/AGE/outputs",
+        "DGI": "/home/yliumh/github/AutoAtCluster/emb_models/DGI/outputs",
+        "MVGRL": "/home/yliumh/github/AutoAtCluster/emb_models/MVGRL/outputs",
+        "GRACE": "/home/yliumh/github/AutoAtCluster/emb_models/GRACE/outputs",
+        "GGD": "/home/yliumh/github/AutoAtCluster/emb_models/GGD/manual_version/outputs",
+        "G2G": "/home/yliumh/github/graph2gauss/outputs/",
     }
     assert model in emb_paths.keys()
 
@@ -37,42 +38,54 @@ def load_emb(model, dataset, seed):
 
     import os
     emb_path = emb_paths[model]
-    emb_path = os.path.join(emb_path, "{}_{}_emb_{}.npz".format(model, dataset_, seed))
+
+    if "ogbn" in dataset:
+        emb_path = os.path.join(emb_path, "{}_{}_emb1_{}.npz".format(model, dataset_, seed))
+    else:
+        emb_path = os.path.join(emb_path, "{}_{}_emb_{}.npz".format(model, dataset_, seed))
 
     data = np.load(emb_path)
 
     return data["emb"]
 
 if __name__ == "__main__":
-    model = "GRACE"
+    models = ["GGD", "G2G", "AGE"] # Used embedding models
 
-    datasets = ["cora", "citeseer", "pubmed", "wiki", "amazon-photo", "amazon-computers"]
+    datasets = ["cora", "citeseer", "wiki", "pubmed", "amazon-photo", "amazon-computers", "cora-full", "ogbn-arxiv"]
 
-    os.makedirs("TSNE_embs/{}".format(model), exist_ok=True)
-    seeds = np.arange(3, dtype=int)
+    for model in models:
+        os.makedirs("TSNE_embs/{}".format(model), exist_ok=True)
+        seeds = np.arange(3, dtype=int)
 
-    for dataset in datasets:
-        times = []
-        for seed in seeds:
-            print(dataset, seed)
+        for dataset in datasets:
+            times = []
+            for seed in seeds:
 
-            np.random.seed(seed)
-            random.seed(seed)
+                if not os.path.exists("TSNE_embs/{}/{}_tsne_{}.npz".format(model, dataset, seed)):
+                    print(model, dataset, seed)
 
-            setproctitle.setproctitle("TS-{}-{}".format(dataset[:2], seed))
+                    np.random.seed(seed)
+                    random.seed(seed)
 
-            st = time.process_time()
-            emb = load_emb(model, dataset, seed=seed)
-            tsne_op = TSNE(n_components=2, random_state=seed)
-            tsne_z = tsne_op.fit_transform(emb)
-            ed = time.process_time()
-            # np.savez("TSNE_embs/{}/{}_tsne_{}.npz".format(model, dataset, seed), emb=tsne_z)
+                    setproctitle.setproctitle("TS-{}-{}".format(dataset[:2], seed))
 
-            times.append(ed-st)
-        
-        with open("time.txt", "a+") as f:
-            f.write("TSNE {} {}\n".format(model, dataset))
-            for t in times:
-                f.write("{:.3f} ".format(t))
-            f.write("\n\n")
+                    st = time.process_time()
+                    try:
+                        emb = load_emb(model, dataset, seed=seed)
+                    except:
+                        continue
+                    tsne_op = TSNE(n_components=2, random_state=seed)
+                    tsne_z = tsne_op.fit_transform(emb)
+                    ed = time.process_time()
+                    np.savez("TSNE_embs/{}/{}_tsne_{}.npz".format(model, dataset, seed), emb=tsne_z)
+
+                    times.append(ed-st)
+                else:
+                    print(f"SKIP: {model} {dataset} {seed}")
+            
+            with open("time.txt", "a+") as f:
+                f.write("TSNE {} {}\n".format(model, dataset))
+                for t in times:
+                    f.write("{:.3f} ".format(t))
+                f.write("\n\n")
 

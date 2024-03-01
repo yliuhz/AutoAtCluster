@@ -43,7 +43,7 @@ def louvain_cluster(adj, neighbor_mode):
     graph_nk = nk.nxadapter.nx2nk(graph, weightAttr="weight")
 
     alg_st = time.time()
-    if neighbor_mode in ["all", "queue"]: #turbo=True
+    if neighbor_mode in ["all", "queue", "unweighted", "ps"]: #turbo=True
         algo = nk.community.PLM(graph_nk, refine=True, turbo=True, nm=neighbor_mode, par="balanced", maxIter=32)
     else: #turbo=False
         algo = nk.community.PLM(graph_nk, refine=True, turbo=False, nm=neighbor_mode, par="balanced", maxIter=32)
@@ -85,7 +85,7 @@ def louvain_cluster_unattributed(datapath, graphFormat, neighbor_mode):
     graph_nk = nk.readGraph(datapath, graphFormat)
 
     alg_st = time.time()
-    if neighbor_mode in ["all", "queue"]: #turbo=True
+    if neighbor_mode in ["all", "queue", "unweighted", "ps"]: #turbo=True
         algo = nk.community.PLM(graph_nk, refine=True, turbo=True, nm=neighbor_mode, par="balanced", maxIter=32)
     else: #turbo=False
         algo = nk.community.PLM(graph_nk, refine=True, turbo=False, nm=neighbor_mode, par="balanced", maxIter=32)
@@ -343,10 +343,19 @@ if __name__ == "__main__":
         "uk-2007-05@100000-edgelist.txt": nk.Format.EdgeListTabZero,
         "uk-2007-05-edgelist.txt": nk.Format.EdgeListTabZero,
         "com-orkut.ungraph.txt": nk.Format.SNAP,
+        "cora.edgelist": nk.Format.EdgeListTabZero,
+        "citeseer.edgelist": nk.Format.EdgeListTabZero,
+        "wiki.edgelist": nk.Format.EdgeListTabZero,
+        "pubmed.edgelist": nk.Format.EdgeListTabZero,
+        "amazon-photo.edgelist": nk.Format.EdgeListTabZero,
+        "amazon-computers.edgelist": nk.Format.EdgeListTabZero,
+        "cora-full.edgelist": nk.Format.EdgeListTabZero,
+        "ogbn-arxiv.edgelist": nk.Format.EdgeListTabZero,
+        "ogbn-products.edgelist": nk.Format.EdgeListTabZero,
     } 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", type=str, required=True, choices=["all", "unweighted", "weighted", "queue"])
+    parser.add_argument("--mode", type=str, required=True, choices=["all", "unweighted", "weighted", "queue", "ps"])
     parser.add_argument("--unattr", action="store_true")
     parser.add_argument("--datapath", type=str, default="")
     parser.add_argument("--nthreads", type=int, choices=[1,2,4,8,16,32,64], default=96)
@@ -370,6 +379,9 @@ if __name__ == "__main__":
         "ogbn-arxiv",
         # "ogbn-products",
     ]
+    # datasets = [
+    #     "pubmed"
+    # ]
 
     # neighbor_modes = [
     #     "unweighted",
@@ -459,6 +471,7 @@ if __name__ == "__main__":
                 m = adj.sum()
                 edges = np.arange(m, 10*m, m, dtype=int)
                 edges = np.concatenate([edges, np.arange(10*m, 101*m, 10*m, dtype=int)])
+                # edges = [500*m, 1000*m, 2000*m, 4000*m]
 
                 for m2 in edges:
                     for seed in seeds:

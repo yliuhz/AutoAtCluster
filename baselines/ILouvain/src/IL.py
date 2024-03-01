@@ -26,6 +26,12 @@ import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
 import random
 
+import time
+
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')  # - %(name)s
+logger = logging.getLogger(__name__)
+
 class ML2:
     __MIN = 0.000001
     # __MIN = 1e-3
@@ -38,7 +44,8 @@ class ML2:
         self.graph = graph
         self.graphBase = graph.copy()
         self.attributes = attributes
-        self.nbVertices = len(graph)
+        # self.nbVertices = len(graph)
+        self.nbVertices = max(graph)+1
         self.statusTab = []
         self.authorIndex = authorIndex
         self.seed = seed
@@ -151,7 +158,12 @@ class ML2:
             pprint(giniMatrix)
         for i in partition:
             for j in partition:
-                out[partition[i]][partition[j]] = giniMatrix[self.authorIndex[i]][self.authorIndex[j]]
+                try:
+                    out[partition[i]][partition[j]] = giniMatrix[self.authorIndex[i]][self.authorIndex[j]]
+                except Exception as e:
+                    print(partition[i], partition[j], self.authorIndex[i], self.authorIndex[j], out.shape, giniMatrix.shape)
+                    print(e)
+                    exit(0)
         return out
 
     def inducedGiniMatrix(self, partition, giniMatrix):
@@ -187,6 +199,7 @@ class ML2:
         """
 
         features = []
+        print("nbvertices: ", self.nbVertices)
         for i in range(self.nbVertices):
             features.append(list(self.attributes[i].values()))
         features = np.array(features)
@@ -195,7 +208,9 @@ class ML2:
         # exit(0)
 
         # giniMatrix = np.sqrt(((features[:,None,:] - features)**2).sum(axis=2))
+        print("???", features.shape)
         giniMatrix = euclidean_distances(features)
+        print(giniMatrix.shape)
         return giniMatrix
 
 
@@ -430,17 +445,26 @@ class Status :
         self.gdegrees = dict([])
         self.internals = dict([])
         self.total_weight = graph.size(weight = 'weight')
-        for node in sorted(graph.nodes()) :
+
+        nbVertices = max(graph)+1
+        # for node in sorted(graph.nodes()) :
+        for node in range(nbVertices):
             self.node2com[node] = count
-            deg = float(graph.degree(node, weight = 'weight'))
-            self.degrees[count] = deg
-            self.gdegrees[node] = deg
-            self.loops[node] = float(graph.get_edge_data(node, node, {"weight":0}).get("weight", 1))
-            self.internals[count] = self.loops[node]
-            count = count + 1
+
+            try:
+                deg = float(graph.degree(node, weight = 'weight'))
+                self.degrees[count] = deg
+                self.gdegrees[node] = deg
+                self.loops[node] = float(graph.get_edge_data(node, node, {"weight":0}).get("weight", 1))
+                self.internals[count] = self.loops[node]
+                count = count + 1
+            except:
+                print(node)
+                exit(0)
 
 def loadDataset(path, seed=None):
     graph = nx.Graph()
+    # path = os.path.join("/data/yliumh/AutoAtClusterDatasets/extractStructures", path)
 
     # Read the graph
     if(not os.path.isfile(path + ".edgeList")):
@@ -453,10 +477,15 @@ def loadDataset(path, seed=None):
             graph.add_node(v1)
             graph.add_node(v2)
             graph.add_edge(v1, v2)
+    nbVertices = max(graph)+1
+    for n in range(nbVertices):
+        if not n in graph:
+            graph.add_node(n) # Add single nodes
 
     # Read the attributes
     attributes = {}
-    for n in graph:
+    # for n in graph:
+    for n in range(nbVertices):
         attributes[n] = {}
     
     if(not os.path.isfile(path + ".attributes")):
@@ -476,8 +505,12 @@ def loadDataset(path, seed=None):
 
     # Build authorIndex
     authorIndex = {}
-    for n in graph:
+    maxn = 0
+    # for n in graph:
+    for n in range(nbVertices):
         authorIndex[n] = n
+        maxn = max(maxn, n)
+    print(maxn)
 
     if(args.verbose):
         print "# Finished reading dataset"
@@ -529,7 +562,7 @@ def __main() :
     parser.add_argument('-verbose', '-v', action='store_true', help='Output algorithm debuging information')
     parser.add_argument('-toydataset', '-t', action='store_true', help='Use the toy dataset')
     parser.add_argument('-multipleDataset', '-m', nargs=2, type=int, help='Use the toy dataset' )
-    parser.add_argument('--nexp', type=int, default=10, help='Use the toy dataset' )
+    parser.add_argument('--nexp', type=int, default=3, help='Use the toy dataset' )
     
     args = parser.parse_args()
 
@@ -551,7 +584,8 @@ def __main() :
                 algo = ML2(graph, attributes, authorIndex)
                 algo.findPartition()
         else:
-
+            
+            times = []
             seeds = np.arange(args.nexp, dtype=int)
             for seed in seeds:
                 np.random.seed(seed)
@@ -561,10 +595,24 @@ def __main() :
 
                 print("Loading {}".format(args.dataset))
                 graph, attributes, authorIndex = loadDataset(args.dataset, seed=seed)
+                
+                logger.info("Algorithm start: " + args.dataset)
                 print("ML2")
+                alg_st = time.time()
                 algo = ML2(graph, attributes, authorIndex, seed=seed)
                 print("Finding partitions")
                 algo.findPartition()
+                alg_ed = time.time()
+
+                times.append(alg_ed-alg_st)
+
+
+            with open("time.txt", "a+") as f:
+                f.write(args.dataset+"\t"+str(seed))
+                for t in times:
+                    f.write("\t"+str(t))
+                f.write("\n")
+
 
 if __name__ == "__main__" :
     __main()
