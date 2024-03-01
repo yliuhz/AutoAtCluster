@@ -2,7 +2,7 @@
 **/**/outputs
 **/**/outputs_tsne
 **/**/outputs_emb
-baselines/TSNE_embs/**/*.npz
+TSNE_embs/**/*.npz
 
 **/dataset
 **/syndata

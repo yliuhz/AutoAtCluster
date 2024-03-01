@@ -79,3 +79,33 @@ Namespace(dataset=None, seed=8, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1
 Namespace(dataset=None, seed=9, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1, classifier_lr=0.05, n_ggd_epochs=2000, n_classifier_epochs=2000, n_hidden=512, proj_layers=1, n_layers=1, weight_decay=0.0, patience=500, self_loop=False, n_trails=1, gnn_encoder='gcn', num_hop=10, data_root_dir='default', pretrain_path='None', dataset_name='photo')
 0.0
 0.0
+Namespace(dataset=None, seed=0, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1, classifier_lr=0.05, n_ggd_epochs=2000, n_classifier_epochs=2000, n_hidden=512, proj_layers=1, n_layers=1, weight_decay=0.0, patience=500, self_loop=False, n_trails=1, gnn_encoder='gcn', num_hop=10, data_root_dir='default', pretrain_path='None', dataset_name='photo')
+0.0
+0.0
+Namespace(dataset=None, seed=1, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1, classifier_lr=0.05, n_ggd_epochs=2000, n_classifier_epochs=2000, n_hidden=512, proj_layers=1, n_layers=1, weight_decay=0.0, patience=500, self_loop=False, n_trails=1, gnn_encoder='gcn', num_hop=10, data_root_dir='default', pretrain_path='None', dataset_name='photo')
+0.0
+0.0
+Namespace(dataset=None, seed=2, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1, classifier_lr=0.05, n_ggd_epochs=2000, n_classifier_epochs=2000, n_hidden=512, proj_layers=1, n_layers=1, weight_decay=0.0, patience=500, self_loop=False, n_trails=1, gnn_encoder='gcn', num_hop=10, data_root_dir='default', pretrain_path='None', dataset_name='photo')
+0.0
+0.0
+Namespace(dataset=None, seed=3, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1, classifier_lr=0.05, n_ggd_epochs=2000, n_classifier_epochs=2000, n_hidden=512, proj_layers=1, n_layers=1, weight_decay=0.0, patience=500, self_loop=False, n_trails=1, gnn_encoder='gcn', num_hop=10, data_root_dir='default', pretrain_path='None', dataset_name='photo')
+0.0
+0.0
+Namespace(dataset=None, seed=4, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1, classifier_lr=0.05, n_ggd_epochs=2000, n_classifier_epochs=2000, n_hidden=512, proj_layers=1, n_layers=1, weight_decay=0.0, patience=500, self_loop=False, n_trails=1, gnn_encoder='gcn', num_hop=10, data_root_dir='default', pretrain_path='None', dataset_name='photo')
+0.0
+0.0
+Namespace(dataset=None, seed=5, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1, classifier_lr=0.05, n_ggd_epochs=2000, n_classifier_epochs=2000, n_hidden=512, proj_layers=1, n_layers=1, weight_decay=0.0, patience=500, self_loop=False, n_trails=1, gnn_encoder='gcn', num_hop=10, data_root_dir='default', pretrain_path='None', dataset_name='photo')
+0.0
+0.0
+Namespace(dataset=None, seed=6, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1, classifier_lr=0.05, n_ggd_epochs=2000, n_classifier_epochs=2000, n_hidden=512, proj_layers=1, n_layers=1, weight_decay=0.0, patience=500, self_loop=False, n_trails=1, gnn_encoder='gcn', num_hop=10, data_root_dir='default', pretrain_path='None', dataset_name='photo')
+0.0
+0.0
+Namespace(dataset=None, seed=7, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1, classifier_lr=0.05, n_ggd_epochs=2000, n_classifier_epochs=2000, n_hidden=512, proj_layers=1, n_layers=1, weight_decay=0.0, patience=500, self_loop=False, n_trails=1, gnn_encoder='gcn', num_hop=10, data_root_dir='default', pretrain_path='None', dataset_name='photo')
+0.0
+0.0
+Namespace(dataset=None, seed=8, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1, classifier_lr=0.05, n_ggd_epochs=2000, n_classifier_epochs=2000, n_hidden=512, proj_layers=1, n_layers=1, weight_decay=0.0, patience=500, self_loop=False, n_trails=1, gnn_encoder='gcn', num_hop=10, data_root_dir='default', pretrain_path='None', dataset_name='photo')
+0.0
+0.0
+Namespace(dataset=None, seed=9, dropout=0.0, gpu=0, ggd_lr=0.0005, drop_feat=0.1, classifier_lr=0.05, n_ggd_epochs=2000, n_classifier_epochs=2000, n_hidden=512, proj_layers=1, n_layers=1, weight_decay=0.0, patience=500, self_loop=False, n_trails=1, gnn_encoder='gcn', num_hop=10, data_root_dir='default', pretrain_path='None', dataset_name='photo')
+0.0
+0.0

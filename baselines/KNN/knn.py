@@ -421,17 +421,17 @@ if __name__ == "__main__":
 
             n = adj.shape[0]
             m = adj.sum()
-            # edges = np.arange(m, 10*m, m, dtype=int)
-            # edges = np.concatenate([edges, np.arange(10*m, 101*m, 10*m, dtype=int)])
+            edges = np.arange(m, 10*m, m, dtype=int)
+            edges = np.concatenate([edges, np.arange(10*m, 101*m, 10*m, dtype=int)])
             # edges = [500*m, 1000*m, 2000*m, 4000*m]
-            edges = np.arange(10*m, 101*m, 10*m, dtype=int)
+            # edges = np.arange(10*m, 101*m, 10*m, dtype=int)
 
             for m2 in edges:
-                # if os.path.exists("outputs/knn_adj_{}_{}_{:.0f}.npz".format(dataset, seed, m2/m)):
-                #     logger.info(f"Skip: knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
-                #     continue
-                # else:
-                #     logger.info(f"knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
+                if os.path.exists("outputs/knn_adj_{}_{}_{:.0f}.npz".format(dataset, seed, m2/m)):
+                    logger.info(f"Skip: knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
+                    continue
+                else:
+                    logger.info(f"knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
 
                 logger.info(f"knn_adj_{dataset}_{seed}_{m2/m:.0f}.npz")
 
@@ -452,6 +452,6 @@ if __name__ == "__main__":
 
                 # plot_superadj(knn_adj, K=100, sparse=True, labels=labels, dataset="knn", vline=True)
 
-                # os.makedirs("outputs", exist_ok=True)
-                # np.savez("outputs/knn_adj_{}_{}_{:.0f}.npz".format(dataset, seed, m2/m), data=knn_adj.data, row=knn_adj.row, col=knn_adj.col)
+                os.makedirs("outputs", exist_ok=True)
+                np.savez("outputs/knn_adj_{}_{}_{:.0f}.npz".format(dataset, seed, m2/m), data=knn_adj.data, row=knn_adj.row, col=knn_adj.col)
 

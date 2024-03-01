@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# for DATASET in cora citeseer wiki amazon-photo amazon-computers pubmed
-# do
-#     python -u execute.py --dataset $DATASET
-# done
+for DATASET in cora citeseer wiki amazon-photo amazon-computers pubmed
+do
+    python -u execute.py --dataset $DATASET
+done
 
 # for SEED in {0..2}
 # do
@@ -11,7 +11,7 @@
 #     python -u execute.py --dataset $DATASET
 # done
 
-python -u execute.py --dataset cora-full
+# python -u execute.py --dataset cora-full
 
 
 

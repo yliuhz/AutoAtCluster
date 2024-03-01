@@ -60,28 +60,28 @@ if __name__ == "__main__":
         for dataset in datasets:
             times = []
             for seed in seeds:
+                
+                # if os.path.exists("TSNE_embs/{}/{}_tsne_{}.npz".format(model, dataset, seed)):
+                #     print(f"SKIP: {model} {dataset} {seed}")
+                #     continue
+                print(model, dataset, seed)
 
-                if not os.path.exists("TSNE_embs/{}/{}_tsne_{}.npz".format(model, dataset, seed)):
-                    print(model, dataset, seed)
+                np.random.seed(seed)
+                random.seed(seed)
 
-                    np.random.seed(seed)
-                    random.seed(seed)
+                setproctitle.setproctitle("TS-{}-{}".format(dataset[:2], seed))
 
-                    setproctitle.setproctitle("TS-{}-{}".format(dataset[:2], seed))
+                st = time.time()
+                try:
+                    emb = load_emb(model, dataset, seed=seed)
+                except:
+                    continue
+                tsne_op = TSNE(n_components=2, random_state=seed)
+                tsne_z = tsne_op.fit_transform(emb)
+                ed = time.time()
+                # np.savez("TSNE_embs/{}/{}_tsne_{}.npz".format(model, dataset, seed), emb=tsne_z)
 
-                    st = time.process_time()
-                    try:
-                        emb = load_emb(model, dataset, seed=seed)
-                    except:
-                        continue
-                    tsne_op = TSNE(n_components=2, random_state=seed)
-                    tsne_z = tsne_op.fit_transform(emb)
-                    ed = time.process_time()
-                    np.savez("TSNE_embs/{}/{}_tsne_{}.npz".format(model, dataset, seed), emb=tsne_z)
-
-                    times.append(ed-st)
-                else:
-                    print(f"SKIP: {model} {dataset} {seed}")
+                times.append(ed-st)
             
             with open("time.txt", "a+") as f:
                 f.write("TSNE {} {}\n".format(model, dataset))
