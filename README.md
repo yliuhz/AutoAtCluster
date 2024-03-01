@@ -18,4 +18,10 @@ git clone https://github.com/yliuhz/DeepRobust.git && cd DeepRobust && python se
 cd networkit && python setup.py build_ext && python -m pip install -e . && cd -
 ```
 
-## 
+## Get Started
+
+Put your data into a directory, and then change the value of `DATAROOT` variable in `runNK.sh`. 
+
+```bash
+bash runNK.sh
+```
