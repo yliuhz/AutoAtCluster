@@ -1,8 +1,8 @@
 
 
-Official repository of "Attributed Community Detection without Cluster Cardinality"
+# Scalable Attributed Community Detection without Cluster Number
 
-Yue Liu, Zhongying Ru, Xiaofang Zhou
+[Yue Liu](https://yliuhz.github.io/), [Zhongying Ru](https://www.linkedin.com/in/%E9%92%9F%E8%8E%B9-%E8%8C%B9-8b4732187/?locale=cs_CZ), Xiaofang Zhou
 
 
 ## Installation
